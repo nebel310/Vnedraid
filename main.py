@@ -1,10 +1,13 @@
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import create_tables, delete_tables
-from router.auth import router as auth_router
+from router.auth import auth_router
+from router.car import car_router
+from repositories.car import CarRepository
 
 
 
@@ -15,6 +18,8 @@ async def lifespan(app: FastAPI):
     print('База очищена')
     await create_tables()
     print('База готова к работе')
+    CarRepository._ensure_upload_dir_exists()
+    print('Папка uploads создана')
     yield
     print('Выключение')
 
@@ -53,6 +58,7 @@ def custom_openapi():
 app = FastAPI(lifespan=lifespan)
 app.openapi = custom_openapi
 app.include_router(auth_router)
+app.include_router(car_router)
 
 
 app.add_middleware(

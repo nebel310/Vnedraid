@@ -7,13 +7,13 @@ from utils.security import create_access_token, get_current_user, oauth2_scheme
 
 
 
-router = APIRouter(
+auth_router = APIRouter(
     prefix="/auth",
     tags=['Пользователи']
 )
 
 
-@router.post("/register")
+@auth_router.post("/register")
 async def register_user(user_data: SUserRegister):
     try:
         user_id = await UserRepository.register_user(user_data)
@@ -22,7 +22,7 @@ async def register_user(user_data: SUserRegister):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/login")
+@auth_router.post("/login")
 async def login_user(login_data: SUserLogin):
     user = await UserRepository.authenticate_user(login_data.email, login_data.password)
     if not user:
@@ -33,7 +33,7 @@ async def login_user(login_data: SUserLogin):
     return {"success": True, "message": "Вы вошли в аккаунт", "access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-@router.post("/refresh")
+@auth_router.post("/refresh")
 async def refresh_token(refresh_token: str):
     user = await UserRepository.get_user_by_refresh_token(refresh_token)
     if not user:
@@ -43,13 +43,13 @@ async def refresh_token(refresh_token: str):
     return {"access_token": new_access_token, "token_type": "bearer"}
 
 
-@router.post("/logout")
+@auth_router.post("/logout")
 async def logout(token: str = Depends(oauth2_scheme), current_user: UserOrm = Depends(get_current_user)):
     await UserRepository.add_to_blacklist(token)
     await UserRepository.revoke_refresh_token(current_user.id)
     return {"success": True}
 
 
-@router.get("/me", response_model=SUser)
+@auth_router.get("/me", response_model=SUser)
 async def get_current_user_info(current_user: UserOrm = Depends(get_current_user)):
     return SUser.model_validate(current_user)
